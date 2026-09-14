@@ -24,6 +24,13 @@ class SalaController extends ChangeNotifier with WidgetsBindingObserver {
   bool _reconectando = false;
   bool _saliendo = false;
 
+  static const Set<String> _estadosTerminales = <String>{
+    'cerrada',
+    'completada',
+    'expirada',
+    'error',
+  };
+
   bool get salaConectada => salaActual != null;
 
   Future<void> unirsePorCodigo(String codigo) async {
@@ -139,16 +146,32 @@ class SalaController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> salirSala() async {
+    if (_saliendo) return;
     if (salaActual == null && _eventSubscription == null) return;
     _saliendo = true;
-    await _eventSubscription?.cancel();
-    _eventSubscription = null;
-    await _salaService.cerrarSala();
-    salaActual = null;
-    cantidadDocumentos = 0;
-    mensajeEstado = 'Sala cerrada.';
-    notifyListeners();
-    _saliendo = false;
+    final sala = salaActual;
+    try {
+      if (sala != null) {
+        try {
+          await _salaService
+              .cerrarSalaRemotamente(sala)
+              .timeout(const Duration(seconds: 3));
+        } catch (_) {
+          // La vista debe cerrarse aunque el servidor no responda.
+        }
+      }
+      await _eventSubscription?.cancel();
+      _eventSubscription = null;
+      await _salaService.cerrarSala();
+    } catch (_) {
+      // El cierre local de la vista no debe depender de que el socket responda.
+    } finally {
+      salaActual = null;
+      cantidadDocumentos = 0;
+      mensajeEstado = 'Sala cerrada.';
+      _saliendo = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _ejecutarIngreso(Future<Sala> Function() ingresar) async {
@@ -195,8 +218,30 @@ class SalaController extends ChangeNotifier with WidgetsBindingObserver {
       mensajeEstado = 'El servidor recibió un documento.';
     } else if (evento.tipo == 'estado_sala') {
       mensajeEstado = evento.mensaje ?? evento.estado ?? mensajeEstado;
+      if (_estadosTerminales.contains(evento.estado)) {
+        unawaited(_cerrarPorEventoTerminal(mensajeEstado));
+      }
     }
     notifyListeners();
+  }
+
+  Future<void> _cerrarPorEventoTerminal(String mensaje) async {
+    if (_saliendo) return;
+    _saliendo = true;
+
+    try {
+      await _eventSubscription?.cancel();
+      _eventSubscription = null;
+      await _salaService.cerrarSala();
+    } catch (_) {
+      // El cierre local de la vista no debe depender de que el socket responda.
+    } finally {
+      salaActual = null;
+      cantidadDocumentos = 0;
+      mensajeEstado = mensaje;
+      _saliendo = false;
+      notifyListeners();
+    }
   }
 
   String _obtenerMensajeError(Object error) {

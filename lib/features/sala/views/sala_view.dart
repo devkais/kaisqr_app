@@ -1,49 +1,87 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../captura/views/capture_view.dart';
 import '../controllers/sala_controller.dart';
 
-class SalaView extends StatelessWidget {
+class SalaView extends StatefulWidget {
   const SalaView({required this.salaController, super.key});
 
   final SalaController salaController;
 
   @override
+  State<SalaView> createState() => _SalaViewState();
+}
+
+class _SalaViewState extends State<SalaView> {
+  bool _cerrandoVista = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.salaController.addListener(_onControllerChange);
+  }
+
+  @override
+  void dispose() {
+    widget.salaController.removeListener(_onControllerChange);
+    super.dispose();
+  }
+
+  void _onControllerChange() {
+    if (!mounted || _cerrandoVista || widget.salaController.salaActual != null) {
+      return;
+    }
+
+    _cerrandoVista = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final sala = salaController.salaActual;
+    final sala = widget.salaController.salaActual;
     if (sala == null) {
-      return const Scaffold(
-        body: Center(child: Text('La sala ya no está disponible.')),
-      );
+      return const SizedBox.shrink();
     }
 
     return PopScope<void>(
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) salaController.salirSala();
+        if (didPop && !_cerrandoVista) {
+          _cerrandoVista = true;
+          unawaited(widget.salaController.salirSala());
+        }
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text('Sala ${sala.codigo}'),
           leading: IconButton(
             onPressed: () async {
-              await salaController.salirSala();
-              if (context.mounted) Navigator.of(context).pop();
+              _cerrandoVista = true;
+              try {
+                await widget.salaController.salirSala();
+              } finally {
+                if (context.mounted) Navigator.of(context).pop();
+              }
             },
             icon: const Icon(Icons.arrow_back_rounded),
           ),
         ),
         body: ListenableBuilder(
-          listenable: salaController,
+          listenable: widget.salaController,
           builder: (context, child) {
             return Column(
               children: <Widget>[
                 _buildStatusCard(context),
                 Expanded(
                   child: CaptureView(
-                    salaController: salaController,
+                    salaController: widget.salaController,
                     onCompleted: () async {
-                      await salaController.salirSala();
-                      if (context.mounted) Navigator.of(context).pop();
+                      await widget.salaController.salirSala();
                     },
                   ),
                 ),
@@ -73,12 +111,12 @@ class SalaView extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              salaController.mensajeEstado,
+              widget.salaController.mensajeEstado,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          if (salaController.cantidadDocumentos > 0)
-            Badge(label: Text('${salaController.cantidadDocumentos}')),
+          if (widget.salaController.cantidadDocumentos > 0)
+            Badge(label: Text('${widget.salaController.cantidadDocumentos}')),
         ],
       ),
     );

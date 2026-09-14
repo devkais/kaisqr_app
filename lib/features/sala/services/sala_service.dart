@@ -72,5 +72,13 @@ class SalaService {
     );
   }
 
+  Future<Map<String, dynamic>> cerrarSalaRemotamente(Sala sala) {
+    return apiClient.postJson(
+      'salas/${sala.salaId}/cerrar',
+      body: <String, dynamic>{},
+      sessionToken: sala.token,
+    );
+  }
+
   Future<void> cerrarSala() => webSocketClient.close();
 }

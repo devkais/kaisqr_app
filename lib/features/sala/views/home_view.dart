@@ -99,12 +99,6 @@ class _HomeViewState extends State<HomeView> {
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
-        Text(
-          'Conecta tu celular a una sala para enviar documentos.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(color: Colors.black54),
-        ),
       ],
     );
   }
@@ -123,12 +117,6 @@ class _HomeViewState extends State<HomeView> {
               'Entrar a una sala',
               style: Theme.of(context).textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Escanea el QR que aparece en la página o escribe el código de seis dígitos.',
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: Colors.black54),
             ),
             const SizedBox(height: 20),
             _buildCodigoInput(context),
@@ -218,7 +206,13 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 cursorColor: Colors.transparent,
                 decoration: const InputDecoration(
+                  filled: false,
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
                   counterText: '',
                   isCollapsed: true,
                   contentPadding: EdgeInsets.zero,
