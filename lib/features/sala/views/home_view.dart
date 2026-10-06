@@ -121,7 +121,7 @@ class _HomeViewState extends State<HomeView> {
             const SizedBox(height: 20),
             _buildCodigoInput(context),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
+            FilledButton.tonalIcon(
               onPressed: _salaController.cargando ? null : _conectarPorCodigo,
               icon: _salaController.cargando
                   ? const SizedBox(
@@ -139,7 +139,7 @@ class _HomeViewState extends State<HomeView> {
                     : 'Entrar con código',
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 5),
             OutlinedButton.icon(
               onPressed: _salaController.cargando ? null : _abrirScanner,
               icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -200,10 +200,7 @@ class _HomeViewState extends State<HomeView> {
                   }
                 },
                 showCursor: false,
-                style: const TextStyle(
-                  color: Colors.transparent,
-                  fontSize: 1,
-                ),
+                style: const TextStyle(color: Colors.transparent, fontSize: 1),
                 cursorColor: Colors.transparent,
                 decoration: const InputDecoration(
                   filled: false,
@@ -231,7 +228,8 @@ class _HomeViewState extends State<HomeView> {
     required ColorScheme colorScheme,
   }) {
     final tieneValor = indice < codigo.length;
-    final esActivo = _codigoFocusNode.hasFocus &&
+    final esActivo =
+        _codigoFocusNode.hasFocus &&
         (indice == codigo.length || (codigo.length == 6 && indice == 5));
 
     return AnimatedContainer(
