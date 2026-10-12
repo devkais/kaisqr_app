@@ -30,7 +30,9 @@ class _SalaViewState extends State<SalaView> {
   }
 
   void _onControllerChange() {
-    if (!mounted || _cerrandoVista || widget.salaController.salaActual != null) {
+    if (!mounted ||
+        _cerrandoVista ||
+        widget.salaController.salaActual != null) {
       return;
     }
 
@@ -58,7 +60,20 @@ class _SalaViewState extends State<SalaView> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Sala ${sala.codigo}'),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          surfaceTintColor: Colors.transparent,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text('Sala', style: TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                'Código ${sala.codigo}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
           leading: IconButton(
             onPressed: () async {
               _cerrandoVista = true;
@@ -69,54 +84,69 @@ class _SalaViewState extends State<SalaView> {
               }
             },
             icon: const Icon(Icons.arrow_back_rounded),
+            tooltip: 'Salir de la sala',
           ),
         ),
-        body: ListenableBuilder(
-          listenable: widget.salaController,
-          builder: (context, child) {
-            return Column(
-              children: <Widget>[
-                _buildStatusCard(context),
-                Expanded(
-                  child: CaptureView(
-                    salaController: widget.salaController,
-                    onCompleted: () async {
-                      await widget.salaController.salirSala();
-                    },
+        body: SafeArea(
+          top: false,
+          bottom: false,
+          child: ListenableBuilder(
+            listenable: widget.salaController,
+            builder: (context, child) {
+              return Column(
+                children: <Widget>[
+                  _buildStatusCard(context),
+                  Expanded(
+                    child: CaptureView(
+                      salaController: widget.salaController,
+                      onCompleted: () async {
+                        await widget.salaController.salirSala();
+                      },
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStatusCard(BuildContext context) {
+    final controller = widget.salaController;
+    final colors = Theme.of(context).colorScheme;
+    final hayProblema =
+        controller.mensajeError != null ||
+        controller.mensajeEstado.toLowerCase().contains('interrumpida');
+    final color = hayProblema ? colors.error : colors.primary;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(18),
+        color: hayProblema ? colors.errorContainer : colors.surface,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: <Widget>[
           Icon(
-            Icons.cloud_done_rounded,
-            color: Theme.of(context).colorScheme.primary,
+            hayProblema ? Icons.cloud_off_outlined : Icons.cloud_outlined,
+            color: color,
+            size: 20,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              widget.salaController.mensajeEstado,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              controller.mensajeError ?? controller.mensajeEstado,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: hayProblema
+                    ? colors.onErrorContainer
+                    : colors.onSurfaceVariant,
+              ),
             ),
           ),
-          if (widget.salaController.cantidadDocumentos > 0)
-            Badge(label: Text('${widget.salaController.cantidadDocumentos}')),
         ],
       ),
     );

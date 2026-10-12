@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -46,68 +45,120 @@ class _CaptureViewState extends State<CaptureView> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Column(
-        children: <Widget>[
-          Expanded(child: _buildDocumentos(context)),
-          if (_captureController.mensajeError != null) ...<Widget>[
-            const SizedBox(height: 8),
-            _buildError(_captureController.mensajeError!),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _captureController.enviando
-                      ? null
-                      : _captureController.seleccionarImagen,
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Galería'),
-                ),
+    final theme = Theme.of(context);
+    final documentos = _captureController.documentos;
+    final cantidadArchivos =
+        documentos
+            .where((documento) => documento.tipoArchivo == TipoArchivo.imagen)
+            .length +
+        _agruparPaginasPdf(documentos).length;
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Documentos para enviar · $cantidadArchivos',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _captureController.enviando
-                      ? null
-                      : _abrirSelectorTipo,
-                  icon: const Icon(Icons.create_new_folder_outlined),
-                  label: const Text('Crear archivo'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed:
-                _captureController.enviando ||
-                    _captureController.documentos.isEmpty
-                ? null
-                : _enviarDocumentos,
-            icon: _captureController.enviando
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.send_rounded),
-            label: Text(
-              _captureController.enviando
-                  ? 'Enviando...'
-                  : _captureController.documentos.every(
-                      (documento) => documento.tipoArchivo == TipoArchivo.pdf,
-                    )
-                  ? 'Enviar PDF'
-                  : 'Enviar archivos',
             ),
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _buildDocumentos(context),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(
+              top: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            left: false,
+            right: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  if (_captureController.mensajeError != null) ...<Widget>[
+                    _buildError(_captureController.mensajeError!),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          onPressed: _captureController.enviando
+                              ? null
+                              : _captureController.seleccionarImagen,
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Galería'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          onPressed: _captureController.enviando
+                              ? null
+                              : _abrirSelectorTipo,
+                          icon: const Icon(Icons.create_new_folder_outlined),
+                          label: const Text('Crear archivo'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (documentos.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed:
+                          _captureController.enviando ||
+                              _captureController.documentos.isEmpty
+                          ? null
+                          : _enviarDocumentos,
+                      icon: _captureController.enviando
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.colorScheme.primary,
+                              ),
+                            )
+                          : const Icon(Icons.send_rounded),
+                      label: Text(
+                        _captureController.enviando
+                            ? 'Enviando...'
+                            : 'Enviar y finalizar · $cantidadArchivos',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -115,22 +166,39 @@ class _CaptureViewState extends State<CaptureView> {
     final documentos = _captureController.documentos;
     if (documentos.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(
-              Icons.document_scanner_outlined,
-              size: 72,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            const Text('Todavía no hay archivos'),
-            const SizedBox(height: 6),
-            const Text(
-              'Crea una imagen o un PDF para comenzar.',
-              style: TextStyle(color: Colors.black54),
-            ),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Icon(
+                  Icons.document_scanner_outlined,
+                  size: 40,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Todavía no hay archivos',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Elige una imagen de tu galería o crea un archivo para comenzar.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -140,7 +208,7 @@ class _CaptureViewState extends State<CaptureView> {
         .toList();
     final lotesPdf = _agruparPaginasPdf(documentos);
     if (lotesPdf.isEmpty) {
-      return _buildGridDocumentos(documentos);
+      return _buildListaDocumentos(documentos);
     }
 
     final entradasPdf = lotesPdf.entries.toList();
@@ -151,17 +219,17 @@ class _CaptureViewState extends State<CaptureView> {
           Padding(
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
             child: Text(
-              'Imágenes preparadas: ${documentosImagen.length}',
+              'Imágenes: ${documentosImagen.length}',
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
-          _buildGridDocumentos(documentosImagen, shrinkWrap: true),
+          _buildListaDocumentos(documentosImagen, shrinkWrap: true),
           const SizedBox(height: 18),
         ],
         Padding(
           padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
           child: Text(
-            'PDFs preparados: ${entradasPdf.length}',
+            'PDFs: ${entradasPdf.length}',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
@@ -179,19 +247,15 @@ class _CaptureViewState extends State<CaptureView> {
     );
   }
 
-  Widget _buildGridDocumentos(
+  Widget _buildListaDocumentos(
     List<DocumentoCapturado> documentos, {
     bool shrinkWrap = false,
   }) {
-    return GridView.builder(
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.78,
-      ),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemCount: documentos.length,
       itemBuilder: (context, index) =>
           _buildDocumentoCard(context, documentos[index]),
@@ -226,6 +290,12 @@ class _CaptureViewState extends State<CaptureView> {
 
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -237,13 +307,13 @@ class _CaptureViewState extends State<CaptureView> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: colorScheme.errorContainer,
+                    color: colorScheme.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
-                    Icons.picture_as_pdf_rounded,
-                    color: colorScheme.error,
-                    size: 30,
+                    Icons.picture_as_pdf_outlined,
+                    color: colorScheme.primary,
+                    size: 24,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -256,13 +326,13 @@ class _CaptureViewState extends State<CaptureView> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         '${documentos.length} páginas · PDF $numeroPdf',
-                        style: const TextStyle(color: Colors.black54),
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -276,23 +346,15 @@ class _CaptureViewState extends State<CaptureView> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              'Estas páginas se unirán en este PDF al enviarlas.',
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             SizedBox(
               height: 142,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: documentos.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, index) => _buildPdfMiniatura(
-                  context,
-                  documentos[index],
-                  index,
-                ),
+                itemBuilder: (context, index) =>
+                    _buildPdfMiniatura(context, documentos[index], index),
               ),
             ),
             const SizedBox(height: 14),
@@ -304,10 +366,10 @@ class _CaptureViewState extends State<CaptureView> {
                   : 'Listo para enviar.',
               style: TextStyle(
                 color: hayErrores
-                    ? Colors.red
+                    ? colorScheme.error
                     : todosEnviados
-                    ? Colors.green
-                    : Colors.black54,
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -340,20 +402,16 @@ class _CaptureViewState extends State<CaptureView> {
                   child: Material(
                     color: Colors.black54,
                     shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: _captureController.enviando
+                    child: IconButton(
+                      tooltip: 'Eliminar página ${indice + 1}',
+                      onPressed: _captureController.enviando
                           ? null
-                          : () => _captureController.eliminarDocumento(
-                                documento,
-                              ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(
-                          Icons.close_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
+                          : () =>
+                                _captureController.eliminarDocumento(documento),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 16,
                       ),
                     ),
                   ),
@@ -364,10 +422,7 @@ class _CaptureViewState extends State<CaptureView> {
           const SizedBox(height: 4),
           Text(
             'Página ${indice + 1}',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.labelMedium,
           ),
         ],
       ),
@@ -378,56 +433,78 @@ class _CaptureViewState extends State<CaptureView> {
     BuildContext context,
     DocumentoCapturado documento,
   ) {
+    final colors = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Expanded(
-            child: Image.file(File(documento.archivo.path), fit: BoxFit.cover),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 4, 4),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
+      elevation: 0,
+      color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colors.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.file(
+                documento.archivo,
+                width: 64,
+                height: 72,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
                     documento.nombre,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: _captureController.enviando
-                      ? null
-                      : () => _captureController.eliminarDocumento(documento),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                  tooltip: 'Eliminar',
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  _buildDocumentStatus(documento),
+                ],
+              ),
             ),
-          ),
-          _buildDocumentStatus(documento),
-        ],
+            IconButton(
+              onPressed: _captureController.enviando
+                  ? null
+                  : () => _captureController.eliminarDocumento(documento),
+              icon: const Icon(Icons.delete_outline_rounded, size: 20),
+              tooltip: 'Eliminar imagen',
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildDocumentStatus(DocumentoCapturado documento) {
+    final colors = Theme.of(context).colorScheme;
     final (Color color, String label) = switch (documento.estado) {
-      EstadoDocumento.pendiente => (Colors.black54, 'Pendiente'),
-      EstadoDocumento.enviando => (Colors.orange, 'Enviando'),
-      EstadoDocumento.enviado => (Colors.green, 'Enviado'),
-      EstadoDocumento.error => (Colors.red, 'Error'),
+      EstadoDocumento.pendiente => (colors.onSurfaceVariant, 'Pendiente'),
+      EstadoDocumento.enviando => (colors.primary, 'Enviando'),
+      EstadoDocumento.enviado => (colors.primary, 'Enviado'),
+      EstadoDocumento.error => (colors.error, 'Error'),
     };
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: documento.estado == EstadoDocumento.error
+            ? colors.errorContainer
+            : colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(
         label,
         style: TextStyle(
@@ -440,14 +517,15 @@ class _CaptureViewState extends State<CaptureView> {
   }
 
   Widget _buildError(String message) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: colors.errorContainer,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(message, style: TextStyle(color: Colors.red.shade800)),
+      child: Text(message, style: TextStyle(color: colors.onErrorContainer)),
     );
   }
 
@@ -486,10 +564,7 @@ class _CaptureViewState extends State<CaptureView> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     '¿Qué archivo quieres crear?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),

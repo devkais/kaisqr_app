@@ -212,7 +212,7 @@ class SalaController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _procesarEvento(EventoSala evento) {
     if (evento.tipo == 'sala_conectada') {
-      mensajeEstado = 'Sala conectada. Ya puedes capturar documentos.';
+      mensajeEstado = 'Sala conectada.';
     } else if (evento.tipo == 'documento_recibido') {
       cantidadDocumentos = evento.cantidadDocumentos ?? cantidadDocumentos;
       mensajeEstado = 'El servidor recibió un documento.';

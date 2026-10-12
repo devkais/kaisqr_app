@@ -57,17 +57,21 @@ class _PdfCaptureViewState extends State<PdfCaptureView> {
         ],
       ),
       bottomNavigationBar: SafeArea(
+        top: false,
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: ElevatedButton.icon(
-          onPressed: _cargando ? null : _agregarPagina,
-          icon: _cargando
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.add_a_photo_outlined),
-          label: Text(_cargando ? 'Preparando...' : 'Agregar página'),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: ElevatedButton.icon(
+            onPressed: _cargando ? null : _agregarPagina,
+            icon: _cargando
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo_outlined),
+            label: Text(_cargando ? 'Preparando...' : 'Agregar página'),
+          ),
         ),
       ),
     );
